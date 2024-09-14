@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Efecto Glitch en Fondo y Divs</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .random-div {
+            position: absolute;
+            box-sizing: border-box;
+            background-color: rgba(255,255,255,1);
+            overflow: hidden;
+        }
+        .random-div canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        let divs = [];
+        let mainColors;
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            mainColors = {
+                background: generateLightColor(),
+                glitch: [
+                    generateLightColor(),
+                    generateLightColor(),
+                    generateLightColor(),
+                    generateLightColor()
+                ]
+            };
+            generateRandomDivs();
+            frameRate(12); // Limitamos el framerate para mejor rendimiento
+        }
+
+        function draw() {
+            generateGlitchBackground(this, mainColors);
+        }
+
+        function generateLightColor() {
+            let r, g, b;
+            let colorMode = random(100);
+
+            if (colorMode < 20) {
+                r = random(145, 255);
+                g = random(145, 255);
+                b = random(145, 255);
+            } else if (colorMode < 60) {
+                let highIndex = floor(random(3));
+                r = highIndex === 0 ? random(123, 255) : random(0, 122);
+                g = highIndex === 1 ? random(123, 255) : random(0, 122);
+                b = highIndex === 2 ? random(123, 255) : random(0, 122);
+            } else if (colorMode < 80) {
+                let lowIndex = floor(random(3));
+                r = lowIndex !== 0 ? random(123, 255) : random(0, 122);
+                g = lowIndex !== 1 ? random(123, 255) : random(0, 122);
+                b = lowIndex !== 2 ? random(123, 255) : random(0, 122);
+            } else {
+                r = random(145, 255);
+                g = random(145, 255);
+                b = random(145, 255);
+            }
+
+            return color(r, g, b, 150);
+        }
+
+        function generateRandomDivs() {
+            let numDivs = floor(random(5, 15));
+            
+            for (let i = 0; i < numDivs; i++) {
+                let div = document.createElement('div');
+                div.className = 'random-div';
+                
+                let width = random(100, 300);
+                let height = random(100, 400);
+                
+                div.style.width = `${width}px`;
+                div.style.height = `${height}px`;
+                div.style.left = `${random(windowWidth - width)}px`;
+                div.style.top = `${random(windowHeight - height)}px`;
+                
+                let hasPerspective = random() < 1;
+                if (hasPerspective) {
+                    div.style.transform = `perspective(1000px) rotateX(${random(-80, 80)}deg) rotateY(${random(-80, 80)}deg)`;
+                    
+                    new p5(sketch => {
+                        let colors = {
+                            background: generateLightColor(),
+                            glitch: [
+                                generateLightColor(),
+                                generateLightColor(),
+                                generateLightColor(),
+                                generateLightColor()
+                            ]
+                        };
+
+                        sketch.setup = function() {
+                            let canvas = sketch.createCanvas(width, height);
+                            canvas.parent(div);
+                            sketch.noLoop();
+                        };
+
+                        sketch.draw = function() {
+                            generateGlitchBackground(sketch, colors);
+                        };
+                    });
+                }
+                
+                let borderColor = generateLightColor();
+                div.style.border = `2px dashed ${borderColor}`;
+                
+                document.body.appendChild(div);
+                divs.push(div);
+            }
+        }
+
+        function generateGlitchBackground(p, colors) {
+            const GRID_SIZE = 80;
+            const CELL_SIZE = Math.min(p.width, p.height) / GRID_SIZE;
+
+            p.background(colors.background);
+            
+            for (let y = 0; y < p.height; y += CELL_SIZE) {
+                for (let x = 0; x < p.width; x += CELL_SIZE) {
+                    if (p.random() < 0.3) {
+                        drawGlitchCell(p, x, y, CELL_SIZE, colors);
+                    }
+                }
+            }
+            
+            drawGlitchCharacters(p, GRID_SIZE, CELL_SIZE, colors);
+            addGlitchEffects(p, GRID_SIZE, CELL_SIZE, colors);
+        }
+
+        function drawGlitchCell(p, x, y, CELL_SIZE, colors) {
+            p.fill(p.random(colors.glitch));
+            p.noStroke();
+            p.rect(x, y, CELL_SIZE, CELL_SIZE);
+        }
+
+        function drawGlitchCharacters(p, GRID_SIZE, CELL_SIZE, colors) {
+            const characters = ['ア', 'イ', 'ウ', 'エ', 'オ', '7', 'J', 'E'];
+            for (let i = 0; i < 3; i++) {
+                const char = p.random(characters);
+                const x = p.random(p.width - CELL_SIZE * 5);
+                const y = p.random(p.height - CELL_SIZE * 5);
+                drawPixelatedChar(p, char, x, y, CELL_SIZE, colors);
+            }
+        }
+
+        function drawPixelatedChar(p, char, startX, startY, CELL_SIZE, colors) {
+            p.fill(p.random(colors.glitch));
+            p.textSize(CELL_SIZE * 5);
+            p.textAlign(p.LEFT, p.TOP);
+            
+            for (let y = 0; y < 5; y++) {
+                for (let x = 0; x < 5; x++) {
+                    if (p.random() < 0.8) {
+                        p.rect(startX + x * CELL_SIZE, startY + y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    }
+                }
+            }
+            
+            p.text(char, startX, startY);
+        }
+
+        function addGlitchEffects(p, GRID_SIZE, CELL_SIZE, colors) {
+            // Líneas horizontales aleatorias
+            for (let i = 0; i < 5; i++) {
+                const y = p.random(p.height);
+                p.fill(p.random(colors.glitch));
+                p.rect(0, y, p.width, CELL_SIZE);
+            }
+            
+            // Bloques de glitch
+            for (let i = 0; i < 10; i++) {
+                const x = p.random(p.width);
+                const y = p.random(p.height);
+                const w = p.random(5) + 1;
+                const h = p.random(5) + 1;
+                p.fill(p.random(colors.glitch));
+                p.rect(x, y, w * CELL_SIZE, h * CELL_SIZE);
+            }
+        }
+
+        function mousePressed() {
+            removeAllDivs();
+            generateRandomDivs();
+            mainColors = {
+                background: generateLightColor(),
+                glitch: [
+                    generateLightColor(),
+                    generateLightColor(),
+                    generateLightColor(),
+                    generateLightColor()
+                ]
+            };
+        }
+
+        function removeAllDivs() {
+            divs.forEach(div => div.remove());
+            divs = [];
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+</html>
